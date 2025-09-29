@@ -1,82 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Grid Animator</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 2rem;
-    }
-    label, input {
-      font-size: 1.2rem;
-    }
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 2rem;
-    }
-    .thumb {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 6px;
-      transition: opacity 0.5s ease-in-out;
-    }
-  </style>
-</head>
-<body>
-  <label for="search">Enter a word:</label>
-  <input type="text" id="search" aria-label="Search term" />
-  <button onclick="startSearch()">Search</button>
-  <div id="grid" role="region" aria-label="Image results grid"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Search</title>
+    <style>
+ 
 
-  <script>
-    const accessKey = '6xpHf92fNbZDlNzYB9gIXbDVYMe3xAE6l2B5fA1AZRA'; // Replace with your Unsplash API key
-    const grid = document.getElementById('grid');
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #000;
+  color: #fff;
+  margin: 0;
+  padding: 0.5rem;
+}
 
-    async function startSearch() {
-      const term = document.getElementById('search').value.trim();
-      if (!term) return;
 
-      grid.innerHTML = '';
-      const images = await fetchImages(term);
-      const thumbs = images.map(img => img.urls.thumb);
-      const chunkSize = 100;
-
-      for (let i = 0; i < chunkSize; i++) {
-        const img = document.createElement('img');
-        img.className = 'thumb';
-        img.src = thumbs[i % thumbs.length];
-        grid.appendChild(img);
-
-        animateImage(img, thumbs, i);
+      label,
+      input {
+        font-size: 1.2rem;
       }
-    }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0; /* Removes space between grid items */
+        margin-top: 2rem;
+      }
 
-    async function fetchImages(query) {
-      const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=30`, {
-        headers: { Authorization: `Client-ID ${accessKey}` }
+      .thumb {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        background-color: #222;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.2),
+          inset 0 0 10px rgba(255, 255, 255, 0.05);
+        transform-style: flat;
+        transition: transform 0.3s;
+      }
+      .expanded-copy {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 100px;
+        height: 100px;
+        transform: translate(-50%, -50%);
+        object-fit: contain;
+        z-index: 10000;
+        background-color: #000;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        transition: all 0.5s ease-in-out;
+        border-radius: 8px;
+      }
+
+      .expanded-copy.fullscreen {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .expanding-image {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 100px;
+        height: 100px;
+        transform: translate(-50%, -50%);
+        object-fit: contain;
+        z-index: 10000;
+        background-color: #000;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        transition: all 0.5s ease-in-out;
+        border-radius: 8px;
+      }
+
+      .expanding-image.fullscreen {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+      }
+      .fullscreen-clone {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+        z-index: 10000;
+        background-color: #000;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        transition: opacity 0.4s ease-in-out;
+      }
+
+      .heading {
+        font-size: 3rem;
+        font-family: "Segoe UI", sans-serif;
+        text-align: center;
+        margin-top: 2rem;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .large-input {
+        font-size: 2.5rem;
+        font-family: "Segoe UI", sans-serif;
+        display: block;
+        margin: 2rem auto;
+        padding: 0.5rem 1rem;
+        width: 80%;
+        max-width: 600px;
+        box-sizing: border-box;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+      }
+
+      .large-button {
+        font-size: 2.5rem;
+        font-family: "Segoe UI", sans-serif;
+        display: block;
+        margin: 2rem auto;
+        padding: 0.6rem 2rem;
+        border: none;
+        border-radius: 8px;
+        background-color: #0078d4;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s ease;
+      }
+
+      .large-button:hover {
+        background-color: #005ea2;
+      }
+
+      .input-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        margin-top: 3rem;
+        flex-wrap: wrap; /* Optional: allows wrapping on smaller screens */
+      }
+
+      .input-row label {
+        font-size: 2.5rem;
+        font-family: "Segoe UI", sans-serif;
+        font-weight: bold;
+        color: #fff;
+      }
+
+      .input-row input {
+        font-size: 2.2rem;
+        padding: 0.5rem 1rem;
+        width: 300px;
+        max-width: 80vw;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      .input-row button {
+        font-size: 2.2rem;
+        padding: 0.6rem 2rem;
+        border: none;
+        border-radius: 8px;
+        background-color: #0078d4;
+        color: white;
+        cursor: pointer;
+        font-family: "Segoe UI", sans-serif;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s ease;
+      }
+
+      .input-row button:hover {
+        background-color: #005ea2;
+      }
+
+      @keyframes spinFast {
+        0% {
+          transform: rotateY(0deg);
+        }
+        100% {
+          transform: rotateY(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="input-row">
+      <label for="search">Image Search</label>
+      <input value="flowers" type="text" id="search" aria-label="Search term" autofocus/><br>
+      <button onclick="startSearch()">Enter</button>
+    </div>
+    <audio id="chimeSound" src="windchimes.mp3" preload="auto" loop></audio>
+
+    <div id="grid" role="region" aria-label="Image results grid"></div>
+
+    <script>
+      const accessKey = "6xpHf92fNbZDlNzYB9gIXbDVYMe3xAE6l2B5fA1AZRA"; // Replace with your Unsplash API key
+      const grid = document.getElementById("grid");
+
+      async function startSearch() {
+        const term = document.getElementById("search").value.trim();
+        if (!term) return;
+
+        grid.innerHTML = "";
+        const images = await fetchImages(term);
+        const thumbs = images.map((img) => img.urls.thumb);
+        const chunkSize = 500;
+        const total = chunkSize;
+        for (let i = 0; i < total; i++) {
+          const img = document.createElement("img");
+          img.className = "thumb";
+          img.src = thumbs[i % thumbs.length];
+          grid.appendChild(img);
+
+          enableInteractiveAnimation(img, thumbs, i);
+        }
+      }
+
+      document.getElementById("search").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          startSearch();
+        }
       });
-      const data = await res.json();
-      return data.results;
-    }
 
-    function animateImage(img, thumbs, startIndex) {
-      let index = startIndex;
-      setInterval(() => {
-        index = (index + 1) % thumbs.length;
-        img.style.opacity = 0.3;
-        setTimeout(() => {
-          img.src = thumbs[index];
-          img.style.opacity = 1;
-        }, 300);
-      }, 2000);
-    }
-  </script>
-</body>
+      async function fetchImages(query) {
+        const res = await fetch(
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+            query
+          )}&per_page=30`,
+          {
+            headers: { Authorization: `Client-ID ${accessKey}` },
+          }
+        );
+        const data = await res.json();
+        return data.results;
+      }
+
+      function enableInteractiveAnimation(img, thumbs, startIndex) {
+        let index = startIndex;
+        let interval = null;
+        const chime = document.getElementById("chimeSound");
+
+        function startAnimation() {
+          if (interval) return;
+
+          interval = setInterval(() => {
+            index = (index + 1) % thumbs.length;
+            img.src = thumbs[index];
+          }, 300);
+
+          img.style.animation = "spinFast 0.8s linear";
+
+          // Play windchime sound
+          // if (chime) {
+          //   chime.currentTime = 0;
+          //   chime.play().catch(() => {}); // Avoid autoplay errors
+          // }
+
+          setTimeout(() => {
+            stopAnimation();
+          }, 1500);
+        }
+
+        function stopAnimation() {
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+          img.style.animation = "none";
+          img.style.transform = "none";
+
+          // Stop windchime sound
+          // if (chime) {
+          //   chime.pause();
+          //   chime.currentTime = 0;
+          // }
+        }
+
+        img.addEventListener("mouseenter", startAnimation);
+
+        let touchStartX = null;
+        img.addEventListener("touchstart", (e) => {
+          touchStartX = e.touches[0].clientX;
+        });
+
+        img.addEventListener("touchend", (e) => {
+          const touchEndX = e.changedTouches[0].clientX;
+          const swipeDistance = touchEndX - touchStartX;
+          if (Math.abs(swipeDistance) > 30) {
+            startAnimation();
+          }
+        });
+
+        img.addEventListener("click", (e) => {
+          if (e.button !== 0) return;
+          stopAnimation();
+          // ... your fullscreen clone logic here ...
+        });
+      }
+
+      const chime = document.getElementById("chimeSound");
+      let movementTimeout = null;
+      let fadeInterval = null;
+
+      document.addEventListener("mousemove", () => {
+        // Cancel fade if already fading
+        if (fadeInterval) {
+          clearInterval(fadeInterval);
+          fadeInterval = null;
+        }
+
+        // Start sound if not playing
+        if (chime && chime.paused) {
+          chime.volume = 1;
+          chime.currentTime = 0;
+          chime.play().catch(() => {});
+        }
+
+        // Reset movement timeout
+        clearTimeout(movementTimeout);
+        movementTimeout = setTimeout(() => {
+          // Start fade-out
+          fadeInterval = setInterval(() => {
+            if (chime.volume > 0.05) {
+              chime.volume -= 0.05;
+            } else {
+              chime.pause();
+              chime.currentTime = 0;
+              chime.volume = 1;
+              clearInterval(fadeInterval);
+              fadeInterval = null;
+            }
+          }, 100); // Fade step every 100ms
+        }, 500); // Wait 500ms after last movement
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          const clone = document.querySelector(".fullscreen-clone");
+          if (clone) {
+            clone.remove();
+            document.body.style.overflow = "";
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
